@@ -50,16 +50,26 @@ def get_s3_data(context):
     return output
 
 
-@op
-def process_data():
-    pass
+@op(
+    ins={"stocks": In(dagster_type=List[Stock])},
+    out={"high_stock": Out(dagster_type=Aggregation)},
+    description="Find stock with the greatest 'high' value"
+)
+def process_data(stocks):
+    highest_stock = sorted(stocks, key=lambda stock: stock.high, reverse=True)[0]
+    return Aggregation(date=highest_stock.date, high=highest_stock.high)
 
 
-@op
-def put_redis_data():
+@op(
+    ins={"high_stock": In(dagster_type=Aggregation)},
+    description="Put results on redis"
+)
+def put_redis_data(high_stock):
     pass
 
 
 @job
 def week_1_pipeline():
-    pass
+    stocks = get_s3_data()
+    high_stock = process_data(stocks)
+    put_redis_data(high_stock)
